@@ -32,7 +32,8 @@ public class BuddyBotCall {
                 .build();
 
         Request request = new Request.Builder()
-                .url("https://ip0-254.science-arts.com/buddybot/peerchat")
+                // .url("https://ip0-254.science-arts.com/buddybot/peerchat")
+                .url("http://localhost:8080/_debug/echo")
                 .post(body)
                 .header("Authorization", "Bearer " + token) // 仕様に合わせて調整可
                 .build();
