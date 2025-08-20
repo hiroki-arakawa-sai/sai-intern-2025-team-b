@@ -4,12 +4,11 @@
 
 # BuddyBot 最小構成での実行手順（チーム共有用）
 
-このドキュメントは、**最小コード**で BuddyBot へ送る HTTP リクエストを実行・検証するための手順をまとめたものです。  
-外部ネットワークに依存しない **ローカルのエコー API** を使った検証方法（推奨）と、本番 URL に切り替える方法を記載します。
+このドキュメントは、**最小コード**で BuddyBot へ送る HTTP リクエストを実行・検証するための手順をまとめたものです。
 
 ---
 
-## 対象リポジトリ構成（抜粋）
+## 主要なリポジトリ構造
 
     hiroki-arakawa-sai-sai-intern-2025-team-b/
     └── demo/
@@ -21,12 +20,17 @@
             │   │   └── com/example/demo/
             │   │       ├── DemoApplication.java
             │   │       ├── HelloController.java
-            │   │       ├── BuddyBotCall.java            # ← 最小クライアント（OkHttp）
-            │   │       └── _debug/EchoController.java   # ← ローカルのエコーAPI（開発用）
+            │   │       ├── BuddyBotCall.java            # ← `Inbound BuddyBotAPI` に HTTP リクエストを送信する
+            │   │       ├── MiniApiServer.java           # ← `Outbound BuddyBotAPI` からのレスポンスを受け取るサーバー
+            │   │       └── _debug/EchoController.java   # ← ローカルのエコーAPI（デバッグ用なので気にしないでok）
             │   └── resources/
             │       └── application.properties
             └── test/
                 └── java/...
+
+## BuddyBotCall.java について
+
+このファイルは `Inbound BuddyBotAPI` に HTTP リクエストを送信します。
 
 **前提**
 
@@ -35,7 +39,7 @@
 
 ---
 
-## 0. セットアップ
+## 1. セットアップ
 
 依存取得とビルド：
 
@@ -44,43 +48,17 @@
 
 ---
 
-## 1. ローカルでの疎通検証（推奨：外部ネットワーク不要）
-
-### 1-1) エコー API を起動
-
-    ./mvnw spring-boot:run
-
-- `POST http://localhost:8080/_debug/echo` を待ち受けます。
-- 受け取った **multipart/form-data** の `parameter` フィールドやヘッダーを **そのまま JSON で返却**します。
-
-### 1-2) 最小クライアントを実行
-
-別ターミナルで：
-
-    ./mvnw -DskipTests exec:java -Dexec.mainClass=com.example.demo.BuddyBotCall
-
-**期待出力**  
-`HTTP 200` とともに、返ってきた JSON の `parameter` に送信した JSON 文字列が表示されます。
-
-**任意：URL を明示的に指定したい場合**
-
-    ./mvnw -DskipTests exec:java \
-      -Dexec.mainClass=com.example.demo.BuddyBotCall \
-      -Dbuddybot.testUrl=http://localhost:8080/_debug/echo
-
----
-
-## 2. 本番 URL へ送る（ネットワーク要件が整った後）
+## 2. 本番 URL へ送る
 
 ### 2-1) 認証トークンの設定（環境変数）
 
 macOS / Linux（一時的）：
 
-    export BUDDYBOT_AUTH_TOKEN='あなたのトークン'
+    export BUDDYBOT_AUTH_TOKEN='BuddyBotのトークン'
 
 Windows PowerShell（永続化。新しいシェルを開き直してください）：
 
-    setx BUDDYBOT_AUTH_TOKEN "あなたのトークン"
+    setx BUDDYBOT_AUTH_TOKEN 'BuddyBotのトークン'
 
 ### 2-2) 実行（URL 切り替え）
 
@@ -93,27 +71,7 @@ Windows PowerShell（永続化。新しいシェルを開き直してくださ�
 
 ---
 
-## 3. プロキシ／DNS／VPN が必要な場合
-
-- **プロキシ経由で実行（例：proxy.company.local:8080）**
-
-      ./mvnw -DskipTests exec:java \
-        -Dexec.mainClass=com.example.demo.BuddyBotCall \
-        -Dbuddybot.testUrl=https://httpbin.org/post \
-        -Dhttps.proxyHost=proxy.company.local -Dhttps.proxyPort=8080 \
-        -Dhttp.proxyHost=proxy.company.local  -Dhttp.proxyPort=8080
-
-  認証付きなら `-Dhttp(s).proxyUser` / `-Dhttp(s).proxyPassword` を追加。
-
-- **DNS が引けない（NXDOMAIN）**  
-  社内向けドメインの可能性があります。VPN 接続や社内 DNS を使用し、接続後に `nslookup <hostname>` で解決できるか確認してください。
-
-- **SSL 証明書エラー**  
-  社内 CA 使用時は JDK の truststore に社内ルート証明書の追加が必要です（社内手順に従ってください）。
-
----
-
-## 4. よくあるエラーと対処
+## 3. よくあるエラーと対処
 
 | 症状            | 代表メッセージ                                    | 対処                                                                        |
 | --------------- | ------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -125,14 +83,13 @@ Windows PowerShell（永続化。新しいシェルを開き直してくださ�
 
 ---
 
-## 5. セキュリティ注意点
+## 4. セキュリティ注意点
 
 - 認証トークンは **環境変数や秘密管理**を使用し、**リポジトリにコミットしない**でください。
-- `/_debug/echo` は開発用。**本番デプロイでは無効化**（削除や開発プロファイル限定）を推奨します。
 
 ---
 
-## 6. 参考コマンド
+## 5. 参考コマンド
 
     # 依存の取得とビルド
     ./mvnw -U clean test
@@ -147,3 +104,56 @@ Windows PowerShell（永続化。新しいシェルを開き直してくださ�
     ./mvnw -q dependency:tree | grep okhttp
 
 ---
+
+## MiniApiServer.java について
+
+`MiniApiServer.java` は `Outbound BuddyBotAPI` からのレスポンスを受け取るサーバーを起動します。
+
+エンドポイント：`/buddybot/outbound`（POST）
+
+- 既定のポート: **18080**
+- 既定のバインド: **0.0.0.0**（LAN からも受けられる）
+
+## 1) コンパイル & 起動
+
+### macOS / Linux
+
+    cd demo
+    ./mvnw -q -DskipTests compile
+
+    # 任意: 環境変数（無ければ既定値を使用）
+    export MINI_API_PORT=18080         # 既定: 18080
+    export MINI_API_BIND=0.0.0.0       # 既定: 0.0.0.0（LAN受け）
+
+    # Authorization を検証したい場合だけ設定
+    export BUDDYBOT_AUTH_TOKEN='BuddyBotのトークン'
+
+    # 起動
+    java -cp target/classes com.example.demo.MiniApiServer
+
+### Windows (PowerShell)
+
+    cd demo
+    .\mvnw -q -DskipTests compile
+
+    # 任意: 環境変数（無ければ既定値を使用）
+    $env:MINI_API_PORT = '18080'       # 既定: 18080
+    $env:MINI_API_BIND = '0.0.0.0'     # 既定: 0.0.0.0（LAN受け）
+
+    # Authorization を検証したい場合だけ設定
+    $env:BUDDYBOT_AUTH_TOKEN = 'BuddyBotのトークン'
+
+    # 起動
+    java -cp target\classes com.example.demo.MiniApiServer
+
+### 起動ログ例
+
+    Listening on http://0.0.0.0:18080/buddybot/outbound
+
+## 2) buddycom console での設定
+
+buddycom console で送信先 URL の設定が必要。送信先 URL は自身の IP アドレスを調べて以下のように設定する。
+
+    http://自分PCのIPアドレス:18080/buddybot/outbound
+
+    例) http://172.16.1.68:18080/buddybot/outbound
