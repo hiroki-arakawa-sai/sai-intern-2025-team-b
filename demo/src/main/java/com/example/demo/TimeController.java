@@ -1,55 +1,55 @@
 package com.example.demo;
 
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import java.time.ZonedDateTime;
 
-public class TimeController {
-    public static void main(String[] args) throws Exception{
-        while (true) {
-            try {
-                Thread.sleep(2000);
-                getCurrentTime();
-            } catch (Exception e) {
-                throw e;
-            }
-        }
-    }
 
-    public static void getCurrentTime() throws Exception{
-        BuddyBotCallApplication bbca = new BuddyBotCallApplication();
+@RestController
+public class TimeController {
+
+    @GetMapping("/Apoint")
+    public String getCurrentTime() {
         ZonedDateTime now = ZonedDateTime.now();
         int hour = now.getHour();
         int min = now.getMinute();
-        switch (min){
-            case 55:
-                if(hour==9 || hour==12){
-                    bbca.call("「巡回時刻は5分前です。次の巡回場所は1階の食品売り場です。」");
+        switch (hour){
+            case 10,13:
+                if(min==55){
+                    return "「巡回時刻は5分前です。次の巡回場所は2階の食品テナントです。」";//
+                    }
+                    if(min==0){
+                    return "「巡回時刻になりました。巡回場所は1階の食品テナントです。」";
                 }
-                else if(hour==10 || hour==13){
-                    bbca.call("「巡回時刻は5分前です。次の巡回場所は2階のテナントです。」");
+                    else return "" ;
+            case 11,14:
+                if(min==20){
+                    return "「巡回時刻は5分前です。次の巡回場所は3階の駐車場です。」";//
+                    }
+                    if(min==0){
+                    return "「巡回時刻になりました。巡回場所は2階の食品テナントです。」";
                 }
-                else if(hour==11 || hour==14){
-                    bbca.call("「巡回時刻は5分前です。次の巡回場所は3階の駐車場です。」");
+                    else return "" ;
+            case 12,15:
+            if(min==20){
+                    return "「巡回時刻は5分前です。次の巡回場所はすべての階層です。」";//
+                    }
+                    if(min==0){
+                    return "「巡回時刻になりました。巡回場所は3階の食品テナントです。」";
                 }
-                else if(hour==15){
-                    bbca.call("「巡回時刻は5分前です。次の巡回場所は全階です。」");
+                    else return "" ;
+            case 16:
+                    if(min==0){
+                    return "「巡回時刻になりました。巡回場所はすべての階層です。」";
                 }
-            case 0:
-                if(hour==10 || hour==13){
-                    bbca.call("「巡回時刻です。巡回場所は1階の食品売り場です。」");
-                }
-                else if(hour==11 || hour==14){
-                    bbca.call("「巡回時刻です。巡回場所は2階のテナントです。」");
-                }
-                else if(hour==12 || hour==15){
-                    bbca.call("「巡回時刻です。巡回場所は3階の駐車場です。」");
-                }
-                else if(hour==16){
-                    bbca.call("「巡回時刻です。巡回場所は全階です。」");
-                }
-            default: bbca.call("「対応時間外です」");
+                    else return "" ;
+            default:
+            return "対応時間外です";
         }
     }
 
+    @GetMapping("/recode")
     public String getrecode() {
         
 
