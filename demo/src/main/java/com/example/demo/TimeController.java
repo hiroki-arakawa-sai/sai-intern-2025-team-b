@@ -16,7 +16,7 @@ public class TimeController {
         switch (hour){
             case 11,12,13,14,15,16:
                 if(min==55){
-                    return "「巡回時刻は5分前です。次の巡回場所は○○です。」";
+                    return "「巡回時刻は5分前です。次の巡回場所は○○です。」";//
                     }
                     if(min==0){
                     return "「巡回時刻になりました。巡回場所は○○です。」";
