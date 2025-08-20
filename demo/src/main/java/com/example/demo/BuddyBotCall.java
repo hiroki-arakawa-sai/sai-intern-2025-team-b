@@ -23,7 +23,7 @@ public class BuddyBotCall {
             "  \"targetUserName\":\"b1@team.b\",\n" +
             "  \"language\":1,\n" +
             "  \"type\":4,\n" +
-            "  \"text\":\"こんにちは\"\n" +
+            "  \"text\":\"おはようございます\nkyou\"\n" +
             "}";
 
         RequestBody body = new MultipartBody.Builder()
@@ -32,8 +32,8 @@ public class BuddyBotCall {
                 .build();
 
         Request request = new Request.Builder()
-                // .url("https://ip0-254.science-arts.com/buddybot/peerchat")
-                .url("http://localhost:8080/_debug/echo")
+                .url("https://ip0-254.science-arts.com/buddybot/peerchat")
+                // .url("http://localhost:8080/_debug/echo")
                 .post(body)
                 .header("Authorization", "Bearer " + token) // 仕様に合わせて調整可
                 .build();
