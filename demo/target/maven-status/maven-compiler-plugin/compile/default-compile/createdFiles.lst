@@ -1,2 +1,10 @@
+com\example\demo\config\ApiClientConfig.class
 com\example\demo\DemoApplication.class
+com\example\demo\TimeController.class
+com\example\demo\Event$EventId.class
 com\example\demo\HelloController.class
+com\example\demo\repo.class
+com\example\demo\Event.class
+com\example\demo\Eventcontroller.class
+com\example\demo\dto\ExternalProductDto.class
+com\example\demo\domain\Product.class
