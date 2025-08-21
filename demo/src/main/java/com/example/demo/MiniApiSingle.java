@@ -19,6 +19,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -99,7 +100,19 @@ public class MiniApiSingle {
             this.nippouRepository = nippouRepository;
         }
 
+        // 時台→保存する場所の決定（10..16時台のみ定義、16時台は3件）
+        private static List<String> placesForHour(int hour) {
+            switch (hour) {
+                case 10, 13: return List.of("食品売り場");
+                case 11, 14: return List.of("テナント");
+                case 12, 15: return List.of("駐車場");
+                case 16:     return List.of("食品売り場", "テナント", "駐車場");
+                default:     return List.of(); // それ以外の時台は従来挙動へフォールバック
+            }
+        }
+
         @PostMapping(path = "/outbound", consumes = MediaType.APPLICATION_JSON_VALUE)
+        @Transactional  // ← 複数行保存（16時台）を一括コミットしたい場合に付けておく
         public ResponseEntity<Map<String, Object>> outbound(@RequestBody String body,
                                                             @RequestHeader Map<String, String> headers) throws Exception {
             log.info("=== INCOMING ===");
@@ -107,39 +120,45 @@ public class MiniApiSingle {
             log.info("Authorization: {}", headers.getOrDefault("authorization", ""));
             log.info("Body:{}", body);
 
-            String dataValue = null;
             JsonNode root = mapper.readTree(body);
             JsonNode dataNode = root.get("data");
 
             Map<String, Object> res = new HashMap<>();
             if (dataNode != null && dataNode.isTextual()) {
-                dataValue = dataNode.asText();
-                store.add(dataValue);
+                String memo = dataNode.asText();
+                store.add(memo);
 
-                // --- どの行を更新するか決める ---
                 ZoneId jst = ZoneId.of("Asia/Tokyo");
-                LocalDate day  = LocalDate.now(jst);
-                LocalTime now  = LocalTime.now(jst).truncatedTo(ChronoUnit.HOURS); // 分秒0
-                // 10:00〜16:00の範囲に丸め込み（必要に応じロジック調整）
-                if (now.isBefore(LocalTime.of(10,0))) now = LocalTime.of(10,0);
-                if (now.isAfter(LocalTime.of(16,0))) now = LocalTime.of(16,0);
+                LocalDate day = LocalDate.now(jst);
+                LocalTime time = LocalTime.now(jst).withNano(0); // 現在の時分秒（ナノ切り落とし）
+                int hour = time.getHour();
 
-                String place = headers.getOrDefault("x-place", "食品売り場"); // 任意：ヘッダで場所指定できるように
-                String name  = headers.getOrDefault("x-name",  "未設定");
+                // 10..16時台のルールに基づく場所
+                List<String> places = placesForHour(hour);
 
-                int updated = nippouRepository.updateMemo(day, now, place, name, dataValue);
-
-                // テンプレが未作成 or 対象行が無い場合は新規INSERT（保険）
-                if (updated == 0) {
-                    Nippou n = new Nippou();
-                    n.setId(new NippouId(day, now, place));
-                    n.setName(name);
-                    n.setMemo(dataValue);
-                    nippouRepository.save(n);
+                // 10..16時台以外は従来通り：ヘッダ優先、なければ「食品売り場」
+                if (places.isEmpty()) {
+                    places = List.of(headers.getOrDefault("x-place", "食品売り場"));
                 }
 
-                log.info("Saved data: {} (total={})", dataValue, store.snapshot().size());
+                String name = headers.getOrDefault("x-name", "未設定");
+
+                int saved = 0;
+                for (String place : places) {
+                    Nippou n = new Nippou();
+                    n.setDay(day);
+                    n.setTime(time);
+                    n.setPlace(place);
+                    n.setName(name);
+                    n.setMemo(memo);
+                    nippouRepository.save(n);
+                    saved++;
+                }
+
+                log.info("Saved memo for hour {} at places {} (saved {} rows)", hour, places, saved);
                 res.put("saved", true);
+                res.put("savedCount", saved);
+                res.put("places", places);
             } else {
                 log.info("No data field found in payload.");
                 res.put("saved", false);
