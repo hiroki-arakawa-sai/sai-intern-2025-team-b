@@ -20,17 +20,17 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 
 @SpringBootApplication
 public class MiniApiSingle {
@@ -112,7 +112,7 @@ public class MiniApiSingle {
         }
 
         @PostMapping(path = "/outbound", consumes = MediaType.APPLICATION_JSON_VALUE)
-        @Transactional  // ← 複数行保存（16時台）を一括コミットしたい場合に付けておく
+        @Transactional
         public ResponseEntity<Map<String, Object>> outbound(@RequestBody String body,
                                                             @RequestHeader Map<String, String> headers) throws Exception {
             log.info("=== INCOMING ===");
@@ -124,23 +124,38 @@ public class MiniApiSingle {
             JsonNode dataNode = root.get("data");
 
             Map<String, Object> res = new HashMap<>();
+
             if (dataNode != null && dataNode.isTextual()) {
                 String memo = dataNode.asText();
                 store.add(memo);
 
                 ZoneId jst = ZoneId.of("Asia/Tokyo");
-                LocalDate day = LocalDate.now(jst);
-                LocalTime time = LocalTime.now(jst).withNano(0); // 現在の時分秒（ナノ切り落とし）
-                int hour = time.getHour();
+                boolean allowOverride = Boolean.parseBoolean(
+                        System.getenv().getOrDefault("BUDDYBOT_ALLOW_TIME_OVERRIDE", "false")
+                );
 
-                // 10..16時台のルールに基づく場所
-                List<String> places = placesForHour(hour);
-
-                // 10..16時台以外は従来通り：ヘッダ優先、なければ「食品売り場」
-                if (places.isEmpty()) {
-                    places = List.of(headers.getOrDefault("x-place", "食品売り場"));
+                ZonedDateTime nowJst;
+                String nowHdr = headers.get("x-now"); // 例: 2025-08-21T11:15:00+09:00（ISO-8601）
+                if (allowOverride && nowHdr != null && !nowHdr.isBlank()) {
+                    try {
+                        ZonedDateTime parsed = ZonedDateTime.parse(nowHdr);
+                        nowJst = parsed.withZoneSameInstant(jst);
+                    } catch (DateTimeParseException e) {
+                        log.warn("x-now parse failed: {}", nowHdr);
+                        nowJst = ZonedDateTime.now(jst);
+                    }
+                } else {
+                    nowJst = ZonedDateTime.now(jst);
                 }
 
+                LocalDate day  = nowJst.toLocalDate();
+                LocalTime time = nowJst.toLocalTime().withNano(0);
+                int hour = time.getHour();
+
+                List<String> places = placesForHour(hour); // 10..16時台ルール
+                if (places.isEmpty()) {
+                    places = List.of(headers.getOrDefault("x-place", "食品売り場")); // フォールバック
+                }
                 String name = headers.getOrDefault("x-name", "未設定");
 
                 int saved = 0;
@@ -155,19 +170,20 @@ public class MiniApiSingle {
                     saved++;
                 }
 
-                log.info("Saved memo for hour {} at places {} (saved {} rows)", hour, places, saved);
+                res.put("status", 0);
+                res.put("message", "ok");
                 res.put("saved", true);
                 res.put("savedCount", saved);
                 res.put("places", places);
-            } else {
-                log.info("No data field found in payload.");
-                res.put("saved", false);
+                res.put("effectiveNow", nowJst.toString());
+                return ResponseEntity.ok(res);
             }
 
-            res.put("status", 0);
-            res.put("message", "ok");
-            res.put("bytes", body.getBytes(StandardCharsets.UTF_8).length);
-            return ResponseEntity.ok(res);
+            // data が無い/文字列でない場合
+            res.put("status", -1);
+            res.put("message", "payload must include textual 'data'");
+            res.put("saved", false);
+            return ResponseEntity.badRequest().body(res);
         }
 
         @GetMapping("/data")
