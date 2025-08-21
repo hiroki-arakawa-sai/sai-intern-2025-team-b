@@ -1,12 +1,13 @@
 package com.example.demo;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class Record{
   private int year,month,date,hour,min;
   private String place,memo;
 
-  public Record(String rec){
-    for(int i=0; i<rec.length(); i++){
-      
-    }
+  public void setMemo(String json){
+    
   }
 }

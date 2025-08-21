@@ -31,7 +31,17 @@ public class MiniApiServer {
         System.out.println("Authorization: " + ex.getRequestHeaders().getFirst("Authorization"));
         System.out.println("Body:\n" + body);
 
+        String memo = new String();
+        Switch sw = new Switch();
+        try {
+            System.out.println(sw.getBody(body));
+            memo = sw.getBody(body);
+        } catch (Exception e) {
+            throw new IOException("failed to handle outbound", e);
+        }
         send(ex, 200, "{\"status\":0,\"message\":\"ok\",\"bytes\":" + raw.length + "}");
+        sw.setIsMemo(memo=="メモ");
+        
     }
 
     private static void send(HttpExchange ex, int code, String body) throws IOException {

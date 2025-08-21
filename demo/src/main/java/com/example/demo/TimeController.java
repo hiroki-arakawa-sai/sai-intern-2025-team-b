@@ -51,7 +51,7 @@ public class TimeController {
     }
 
     public String getrecode() {
-        
+        bbca.call("日報\n"+[0]+)
 
         return new String();
     }
