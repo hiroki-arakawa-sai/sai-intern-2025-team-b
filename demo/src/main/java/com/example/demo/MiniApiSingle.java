@@ -26,6 +26,9 @@ import java.util.*;
 
 @SpringBootApplication
 public class MiniApiSingle {
+    private final NippouRepository repo;
+
+    public MiniApiSingle (NippouRepository repo){this.repo=repo;}
     public static void main(String[] args) {
         SpringApplication app = new SpringApplication(MiniApiSingle.class);
         Map<String, Object> props = new HashMap<>();
@@ -81,8 +84,13 @@ public class MiniApiSingle {
     public static class BuddybotController {
         private static final Logger log = LoggerFactory.getLogger(BuddybotController.class);
         private final DataStoreService store;
+        private final NippouRepository nippouRepository;
         private final ObjectMapper mapper = new ObjectMapper();
-        public BuddybotController(DataStoreService store) { this.store = store; }
+        // コンストラクタインジェクション
+        public BuddybotController(DataStoreService store, NippouRepository nippouRepository) {
+            this.store = store;
+            this.nippouRepository = nippouRepository;
+        }
 
         @PostMapping(path = "/outbound", consumes = MediaType.APPLICATION_JSON_VALUE)
         public ResponseEntity<Map<String, Object>> outbound(@RequestBody String body, @RequestHeader Map<String, String> headers) throws Exception {
@@ -94,9 +102,14 @@ public class MiniApiSingle {
             String dataValue = null;
             JsonNode root = mapper.readTree(body);
             JsonNode dataNode = root.get("data");
+            
             if (dataNode != null && dataNode.isTextual()) {
                 dataValue = dataNode.asText();
                 store.add(dataValue);
+                // Nippou クラスをインスタンス化
+                Nippou nippou = new Nippou();
+                nippou.setMemo(dataValue);
+                nippouRepository.save(nippou);
                 log.info("Saved data: {} (total={})", dataValue, store.snapshot().size());
             } else {
                 log.info("No data field found in payload.");
@@ -111,6 +124,7 @@ public class MiniApiSingle {
 
         @GetMapping("/data")
         public ResponseEntity<Map<String, Object>> all() {
+            // System.out.println("test");
             List<String> snapshot = store.snapshot();
             return ResponseEntity.ok(Map.of("status", 0, "count", snapshot.size(), "data", snapshot));
         }
