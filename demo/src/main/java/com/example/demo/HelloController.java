@@ -8,6 +8,6 @@ public class HelloController {
   
   @GetMapping("/hello") // ② /hello というURLへのGETリクエストを処理する
   public String hello() {
-    return "Hello World!!!!";
+    return "Hello World!";
   }
 }
