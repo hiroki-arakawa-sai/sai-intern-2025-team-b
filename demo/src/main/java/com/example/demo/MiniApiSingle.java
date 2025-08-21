@@ -126,11 +126,19 @@ public class MiniApiSingle {
     }
 
     // ========= Exception Advice =========
+    // 置き換え：MethodNotAllowedAdvice 全体
     @RestControllerAdvice
     public static class MethodNotAllowedAdvice extends ResponseEntityExceptionHandler {
-        @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-        public ResponseEntity<Map<String, Object>> handle405(HttpRequestMethodNotSupportedException ex) {
-            return ResponseEntity.status(405).body(Map.of("status", -1, "message", "method not allowed"));
+
+        @Override
+        protected ResponseEntity<Object> handleHttpRequestMethodNotSupported(
+                org.springframework.web.HttpRequestMethodNotSupportedException ex,
+                org.springframework.http.HttpHeaders headers,
+                org.springframework.http.HttpStatusCode status,
+                org.springframework.web.context.request.WebRequest request) {
+
+            Map<String, Object> body = Map.of("status", -1, "message", "method not allowed");
+            return ResponseEntity.status(org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED).body(body);
         }
     }
 }
