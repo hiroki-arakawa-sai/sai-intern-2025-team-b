@@ -22,7 +22,14 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 
 @SpringBootApplication
 public class MiniApiSingle {
@@ -93,7 +100,8 @@ public class MiniApiSingle {
         }
 
         @PostMapping(path = "/outbound", consumes = MediaType.APPLICATION_JSON_VALUE)
-        public ResponseEntity<Map<String, Object>> outbound(@RequestBody String body, @RequestHeader Map<String, String> headers) throws Exception {
+        public ResponseEntity<Map<String, Object>> outbound(@RequestBody String body,
+                                                            @RequestHeader Map<String, String> headers) throws Exception {
             log.info("=== INCOMING ===");
             log.info("Content-Type: {}", headers.getOrDefault("content-type", ""));
             log.info("Authorization: {}", headers.getOrDefault("authorization", ""));
@@ -102,20 +110,41 @@ public class MiniApiSingle {
             String dataValue = null;
             JsonNode root = mapper.readTree(body);
             JsonNode dataNode = root.get("data");
-            
+
+            Map<String, Object> res = new HashMap<>();
             if (dataNode != null && dataNode.isTextual()) {
                 dataValue = dataNode.asText();
                 store.add(dataValue);
-                // Nippou クラスをインスタンス化
-                Nippou nippou = new Nippou();
-                nippou.setMemo(dataValue);
-                nippouRepository.save(nippou);
+
+                // --- どの行を更新するか決める ---
+                ZoneId jst = ZoneId.of("Asia/Tokyo");
+                LocalDate day  = LocalDate.now(jst);
+                LocalTime now  = LocalTime.now(jst).truncatedTo(ChronoUnit.HOURS); // 分秒0
+                // 10:00〜16:00の範囲に丸め込み（必要に応じロジック調整）
+                if (now.isBefore(LocalTime.of(10,0))) now = LocalTime.of(10,0);
+                if (now.isAfter(LocalTime.of(16,0))) now = LocalTime.of(16,0);
+
+                String place = headers.getOrDefault("x-place", "食品売り場"); // 任意：ヘッダで場所指定できるように
+                String name  = headers.getOrDefault("x-name",  "未設定");
+
+                int updated = nippouRepository.updateMemo(day, now, place, name, dataValue);
+
+                // テンプレが未作成 or 対象行が無い場合は新規INSERT（保険）
+                if (updated == 0) {
+                    Nippou n = new Nippou();
+                    n.setId(new NippouId(day, now, place));
+                    n.setName(name);
+                    n.setMemo(dataValue);
+                    nippouRepository.save(n);
+                }
+
                 log.info("Saved data: {} (total={})", dataValue, store.snapshot().size());
+                res.put("saved", true);
             } else {
                 log.info("No data field found in payload.");
+                res.put("saved", false);
             }
 
-            Map<String, Object> res = new HashMap<>();
             res.put("status", 0);
             res.put("message", "ok");
             res.put("bytes", body.getBytes(StandardCharsets.UTF_8).length);
