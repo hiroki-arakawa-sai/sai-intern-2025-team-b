@@ -1,0 +1,35 @@
+<!-- src/main/resources/templates/logs.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <title>ログ一覧</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; }
+    th { background: #f5f5f5; text-align: left; }
+  </style>
+</head>
+<body>
+<h2>ログ一覧</h2>
+
+<table th:if="${!#lists.isEmpty(logs)}">
+  <thead>
+    <tr><th>ID</th><th>時間</th><th>場所</th><th>メモ</th></tr>
+  </thead>
+  <tbody>
+    <tr th:each="e : ${logs}">
+      <td th:text="${e.id}">1</td>
+      <!-- Java 8 日付の整形（下記の extras 依存が必要） -->
+      <td th:text="${#temporals.format(e.time, 'yyyy/MM/dd HH:mm')}">2025/08/20 09:30</td>
+      <td th:text="${e.place}">渋谷オフィス</td>
+      <!-- 改行を <br> に変換して表示（XSS対策としてまずエスケープ） -->
+      <td th:utext="${#strings.replace(#strings.escapeXml(e.memo), '\n', '<br/>')}">メモ</td>
+    </tr>
+  </tbody>
+</table>
+
+<p th:if="${#lists.isEmpty(logs)}">データがありません。</p>
+
+</body>
+</html>
