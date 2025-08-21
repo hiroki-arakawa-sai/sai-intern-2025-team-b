@@ -55,7 +55,5 @@ public class TimeController {
 
         return new String();
     }
-
-    
 }
 
