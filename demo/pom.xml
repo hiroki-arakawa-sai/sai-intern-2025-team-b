@@ -42,41 +42,19 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-validation</artifactId>
     </dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>com.squareup.okhttp3</groupId>
-			<artifactId>okhttp</artifactId>
-			<version>4.12.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-	</dependencies>
-
-<build>
-  <plugins>
-    <plugin>
+    <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-maven-plugin</artifactId>
-			<configuration>
-        <mainClass>com.example.demo.MiniApiSingle</mainClass>
-      </configuration>
-    </plugin>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
 
-    <!-- Other libs -->
+    <!-- DB driver -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- HTTP client -->
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
@@ -96,9 +74,18 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <!--
+          通常は mainClass の指定は不要（@SpringBootApplication を自動検出）。
+          アプリに複数の main がある場合のみ設定してください。
+          例:
+          <configuration>
+            <mainClass>com.example.demo.MiniApiSingle</mainClass>
+          </configuration>
+        -->
       </plugin>
 
-      <!-- 必要なら残す（spring-boot:run には不要） -->
+      <!-- 必要な時だけ使う: `mvn exec:java -Dexec.mainClass=...` 用 -->
+      <!--
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -107,12 +94,7 @@
           <mainClass>com.example.demo.BuddyBotCall</mainClass>
         </configuration>
       </plugin>
-
-      <!-- 任意：GraalVM Native Build Tools -->
-      <plugin>
-        <groupId>org.graalvm.buildtools</groupId>
-        <artifactId>native-maven-plugin</artifactId>
-      </plugin>
+      -->
     </plugins>
   </build>
 </project>
