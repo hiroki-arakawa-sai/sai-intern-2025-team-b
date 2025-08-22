@@ -6,7 +6,7 @@ public class TimeController {
     public static void main(String[] args) throws Exception{
         while (true) {
             try {
-                Thread.sleep(2000);
+                Thread.sleep(10000);
                 getCurrentTime();
             } catch (Exception e) {
                 throw e;
