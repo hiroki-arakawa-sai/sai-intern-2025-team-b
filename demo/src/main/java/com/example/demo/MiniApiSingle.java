@@ -125,10 +125,16 @@ public class MiniApiSingle {
 
             JsonNode root = mapper.readTree(body);
             JsonNode dataNode = root.get("data");
-            String userName = root.get("senderUserName").asText();
+            JsonNode userNameNode = root.get("senderUserName");
 
             Map<String, Object> res = new HashMap<>();
-
+            
+            String userName;
+            if (userNameNode != null && userNameNode.isTextual()) {
+                userName = userNameNode.asText();
+            } else {
+                userName = "demo";
+            }
             if (dataNode != null && dataNode.isTextual()) {
                 String memo = dataNode.asText();
 
