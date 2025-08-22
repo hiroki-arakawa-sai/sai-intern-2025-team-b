@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.fasterxml.jackson.core.io.JsonStringEncoder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -124,6 +125,7 @@ public class MiniApiSingle {
 
             JsonNode root = mapper.readTree(body);
             JsonNode dataNode = root.get("data");
+            String userName = root.get("senderUserName").asText();
 
             Map<String, Object> res = new HashMap<>();
 
@@ -166,18 +168,14 @@ public class MiniApiSingle {
                 int hour = time.getHour();
 
                 List<String> places = placesForHour(hour); // 10..16時台ルール
-                if (places.isEmpty()) {
-                    places = List.of(headers.getOrDefault("x-place", "食品売り場")); // フォールバック
-                }
-                String name = headers.getOrDefault("x-name", "未設定");
 
                 int saved = 0;
                 for (String place : places) {
                     Nippou n = new Nippou();
-                    n.setDay(day);
+                    n.setDay(day); 
                     n.setTime(time);
                     n.setPlace(place);
-                    n.setName(name);
+                    n.setName(userName);
                     n.setMemo(memo);
                     nippouRepository.save(n);
                     saved++;
