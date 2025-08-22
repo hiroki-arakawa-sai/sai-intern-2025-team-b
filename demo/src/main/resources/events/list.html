@@ -1,0 +1,40 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Events</title></head>
+<body>
+<h1>Events</h1>
+
+<form method="get" action="/events">
+  <label>日付:
+    <input type="date" name="date" th:value="${selectedDate}">
+  </label>
+  <button type="submit">表示</button>
+  <a th:href="@{/events}">クリア</a>
+</form>
+
+<table border="1" cellpadding="6">
+  <thead>
+    <tr>
+      <th>名前</th>
+      <th>日付</th>
+      <th>時間</th>
+      <th>場所</th>
+      <th>メモ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!--
+    <tr th:each="e : ${events}">
+      <td th:text="${e.personName != null ? e.personName : '（未設定）'}">（未設定）</td>
+      <td th:text="${e.eventDate != null ? #temporals.format(e.eventDate,'yyyy-MM-dd') : ''}"></td>
+      <td th:text="${e.eventTime != null ? #temporals.format(e.eventTime,'HH:mm') : ''}"></td>
+      <td th:text="${e.location}"></td>
+      <td th:text="${e.memo}"></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(events)}"><td colspan="5">データがありません</td></tr>
+-->
+  </tbody>
+  
+</table>
+</body>
+</html>
