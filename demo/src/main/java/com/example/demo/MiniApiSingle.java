@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -30,7 +29,6 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.*;
 
-import java.time.*;
 
 @SpringBootApplication
 public class MiniApiSingle {
@@ -93,12 +91,16 @@ public class MiniApiSingle {
         private static final Logger log = LoggerFactory.getLogger(BuddybotController.class);
         private final DataStoreService store;
         private final NippouRepository nippouRepository;
+        private final MemoDisplayResponder memoResponder;
         private final ObjectMapper mapper = new ObjectMapper();
         // コンストラクタインジェクション
-        public BuddybotController(DataStoreService store, NippouRepository nippouRepository) {
-            this.store = store;
-            this.nippouRepository = nippouRepository;
-        }
+        public BuddybotController(DataStoreService store,
+                            NippouRepository nippouRepository,
+                            MemoDisplayResponder memoResponder) {
+        this.store = store;
+        this.nippouRepository = nippouRepository;
+        this.memoResponder = memoResponder;   // ← 追加
+    }
 
         // 時台→保存する場所の決定（10..16時台のみ定義、16時台は3件）
         private static List<String> placesForHour(int hour) {
@@ -127,6 +129,17 @@ public class MiniApiSingle {
 
             if (dataNode != null && dataNode.isTextual()) {
                 String memo = dataNode.asText();
+
+                // ★ 「日報メモを表示」なら DB を読み上げて終了（保存しない）
+                String reply = memoResponder.maybeHandle(memo);
+                if (reply != null && !reply.isBlank()) {
+                    res.put("status", 0);
+                    res.put("message", "ok");
+                    res.put("reply", reply);
+                    return ResponseEntity.ok(res);
+                }
+
+                // 通常フロー：保存
                 store.add(memo);
 
                 ZoneId jst = ZoneId.of("Asia/Tokyo");
